@@ -7,7 +7,7 @@ Install jq (on linux) if you don't have it:
 You can test (assuming default endpoint configuration) with the following CURL request:
 
 ```bash
-curl localhost:3000/graphql \
+curl localhost:3002/graphql \
  -F operations='{"query":"mutation UploadFile($file:Upload!) {uploadFile(file:$file)}", "variables": { "file": null }}' \
  -F map='{ "0": ["variables.file"] }' \
  -F 0=@"./uploads/sample/default.txt"

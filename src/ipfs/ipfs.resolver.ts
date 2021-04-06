@@ -1,10 +1,7 @@
 import { Inject } from '@nestjs/common';
-import { createWriteStream, unlinkSync } from 'fs';
 import { IpfsService } from './ipfs.service';
 import { FileUpload, GraphQLUpload } from 'graphql-upload';
-import { v4 as uuidv4 } from 'uuid';
 import { Mutation, Args, Resolver } from '@nestjs/graphql';
-
 @Resolver()
 export class IpfsResolver {
   constructor(@Inject(IpfsService) private ipfsService: IpfsService) {}
@@ -12,25 +9,29 @@ export class IpfsResolver {
   @Mutation(() => String)
   async uploadFile(
     @Args({ name: 'file', type: () => GraphQLUpload })
-    { createReadStream, filename }: FileUpload,
+    { createReadStream, filename, mimetype, encoding }: FileUpload,
   ): Promise<string> {
-    const guid = uuidv4();
-    const filePath = `./uploads/${filename}-${guid}`;
+    console.log(`Filename: ${filename}`);
+    console.log(`Mimetype: ${mimetype}`);
+    console.log(`Encoding: ${encoding}`);
 
-    const res = new Promise(async (resolve, reject) =>
-      createReadStream()
-        .pipe(createWriteStream(filePath))
-        .on('finish', () => resolve(true))
-        .on('error', () => reject(false)),
-    );
-
-    if (await res) {
-      const uri = await this.ipfsService.uploadFile(filePath);
-      unlinkSync(filePath);
-
-      return uri;
+    if (
+      !(
+        mimetype === 'image/png' ||
+        mimetype === 'image/jpeg' ||
+        mimetype === 'image/jpg' ||
+        filename === 'default.txt'
+      )
+    ) {
+      throw new Error(`Forbidden file type ${mimetype}`);
     }
 
-    throw new Error(`Ipfs upload of ${filename} failed!`);
+    console.log(`Creating read stream!`);
+    const readStream = createReadStream();
+    if (!readStream) throw new Error('Readstream should be defined!');
+
+    console.log(`Uploading file!`);
+    const uri = await this.ipfsService.uploadFileFromStream(readStream);
+    return uri;
   }
 }
